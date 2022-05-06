@@ -1,0 +1,13 @@
+<div>
+ <div class="city">
+    <label>City Name</label>
+    <input [(ngModel)]="city">
+    <button class="btn btn-primary primaryBtn" (click)="onSubmit()">Search</button>
+  </div>
+  <div class="temperature"> 
+    <label>Temperature is {{temperature}} &#176;F.</label>
+  </div>
+ <div> 
+      <label *ngIf="errorMsg != ''">The error messsage is {{errorMsg}}</label>
+  </div>
+</div>
