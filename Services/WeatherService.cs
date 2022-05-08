@@ -43,16 +43,23 @@ namespace WebAPI.Services
                 else
                 {
                     var curTemp = await GetCurTemp(city);
-                    var newCityWeather = new WeatherForecast() { City = city, LastDateTime = DateTime.Now, Temperature = curTemp };
-                    _context.Add(newCityWeather);
-                    _context.SaveChangesAsync();
-                    return newCityWeather;
+                    if (curTemp != int.MaxValue)
+                    {
+                        var newCityWeather = new WeatherForecast() { City = city, LastDateTime = DateTime.Now, Temperature = curTemp };
+                        _context.Add(newCityWeather);
+                        _context.SaveChangesAsync();
+                        return newCityWeather;
+                    }
+                    return null;
                 }
                 async Task<WeatherForecast> updateFunc(WeatherForecast weather)
                 {
                     var curTemp = await GetCurTemp(weather.City);
-                    weather.Temperature = curTemp;
-                    _context.SaveChangesAsync();
+                    if (curTemp != int.MaxValue)
+                    {
+                        weather.Temperature = curTemp;
+                        _context.SaveChangesAsync();
+                    }
                     return weather;
                 };
             }
@@ -80,44 +87,39 @@ namespace WebAPI.Services
 
                 var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var dict = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(responseBody);
-                foreach (var key in dict[0].Keys)
+                var obj = new Object();
+                if (dict[0].TryGetValue("Key", out obj))
                 {
-                    if (key == "Key")
+                    string locationkey = obj as string;
+                    var location = "http://dataservice.accuweather.com/forecasts/v1/hourly/12hour/" + locationkey + "?apikey=KL0BN1ASwhUUC4EqCfqnGA0tXsXNEsqA";
+                    request = new HttpRequestMessage
                     {
-                        string locationkey = dict[0][key] as string;
-                        var location = "http://dataservice.accuweather.com/forecasts/v1/hourly/12hour/" + locationkey + "?apikey=KL0BN1ASwhUUC4EqCfqnGA0tXsXNEsqA";
-                        request = new HttpRequestMessage
+                        Method = HttpMethod.Get,
+                        RequestUri = new Uri(location),
+                    };
+                    response = await client.SendAsync(request).ConfigureAwait(false);
+                    response.EnsureSuccessStatusCode();
+                    responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    object contentObj = new object(); ;
+                    var dict1 = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(responseBody);
+                    if (dict1[0].TryGetValue("Temperature", out contentObj))
+                    {
+                        var content = JsonConvert.SerializeObject(contentObj);
+                        string[] items = content.Split(',');
+                        foreach (var item in items)
                         {
-                            Method = HttpMethod.Get,
-                            RequestUri = new Uri(location),
-                        };
-                        response = await client.SendAsync(request).ConfigureAwait(false);
-                        response.EnsureSuccessStatusCode();
-                        responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                        dict = JsonConvert.DeserializeObject<List<Dictionary<string, object>>>(responseBody);
-                        foreach (var key1 in dict[0].Keys)
-                        {
-                            if (key1 == "Temperature")
-                            {
-                                var values = JsonConvert.DeserializeObject<List<Dictionary<string, string>>>(dict[0][key1] as string);
-                                foreach (var d in values)
-                                {
-                                    foreach (var k1 in d.Keys)
-                                        if (k1 == "Temperature")
-                                        {
-                                            return Convert.ToInt32(d[k1]);
-                                        }
-                                }
-                            }
+                            var index = item.Split(':');
+                            if (index[0].TrimStart('{').Trim('\"') == "Value")
+                                return (int)Convert.ToDouble(index[1].TrimEnd('}'));
                         }
                     }
                 }
             }
-            catch (Exception ex)
+            catch
             {
                throw;
             }
-            return 0;
+            return int.MaxValue;
         }
     }
 

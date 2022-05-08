@@ -21,9 +21,12 @@ namespace WebAPI.Controllers
         {
             try
             {
-                return await _weatherService.GetWeather(city);
+                var weather = await _weatherService.GetWeather(city);
+                if (weather == null)
+                    return NotFound();
+                return weather;
             }
-            catch (Exception ex)
+            catch
             {
                 //to do, return more meaningful error message
                 return  NotFound();
