@@ -105,12 +105,12 @@ namespace WebAPI.Services
                     if (dict1[0].TryGetValue("Temperature", out contentObj))
                     {
                         var content = JsonConvert.SerializeObject(contentObj);
-                        string[] items = content.Split(',');
+                        string[] items = content.TrimStart('{').TrimEnd('}').Split(',');
                         foreach (var item in items)
                         {
                             var index = item.Split(':');
-                            if (index[0].TrimStart('{').Trim('\"') == "Value")
-                                return (int)Convert.ToDouble(index[1].TrimEnd('}'));
+                            if (index[0].Trim('\"') == "Value")
+                                return (int)Convert.ToDouble(index[1]);
                         }
                     }
                 }

@@ -27,9 +27,8 @@ export class FetchDataComponent {
         this.forecast = result;
         this.temperature = result.temperature;}), 
       catchError((err) => {
-        const error = err.error?.message;
-        this.errorMsg = error;
-        return error;
+        this.errorMsg = JSON.stringify(err);
+        return this.errorMsg;
       })).subscribe(_ => console.log("water is flowing!"));;   
     }
   }
